@@ -3,56 +3,54 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'random_strings.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:socket_io_client/socket_io_client.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
 import '../utlis/device_info.dart';
 import '../utlis/websocket.dart';
 
 enum SignalingState {
-  CallStateNew,
-  CallStateRinging,
-  CallStateInvite,
-  CallStateConnected,
-  CallStateBye,
-  ConnectionOpen,
-  ConnectionClosed,
-  ConnectionError,
+  callStateNew,
+  callStateRinging,
+  callStateInvite,
+  callStateConnected,
+  callStateBye,
+  connectionOpen,
+  connectionClosed,
+  connectionError,
 }
 
 enum VideoSource {
-  Camera,
-  Screen,
+  camera,
+  screen,
 }
 
 /*
  * callbacks for Signaling API.
  */
-typedef void SignalingStateCallback(SignalingState state);
-typedef void StreamStateCallback(MediaStream stream);
-typedef void OtherEventCallback(dynamic event);
-typedef void DataChannelMessageCallback(
+typedef SignalingStateCallback = void Function(SignalingState state);
+typedef StreamStateCallback = void Function(MediaStream stream);
+typedef OtherEventCallback = void Function(dynamic event);
+typedef DataChannelMessageCallback = void Function(
     RTCDataChannel dc, RTCDataChannelMessage data);
-typedef void DataChannelCallback(RTCDataChannel dc);
+typedef DataChannelCallback = void Function(RTCDataChannel dc);
 
 class Signaling {
-  String _selfId = randomNumeric(6);
+  final String _selfId = randomNumeric(6);
   SimpleWebSocket? _socket;
-  IO.Socket? socket;
+  io.Socket? socket;
   late String _sessionId;
-  late String _host;
-  int _port = 6930;
+  late final String _host;
+  final int _port = 6930;
   late final Map<String, RTCPeerConnection> _peerConnections =
-      Map<String, RTCPeerConnection>();
-  late Map<String, RTCDataChannel> _dataChannels =
-      Map<String, RTCDataChannel>();
-  late List<RTCIceCandidate> _remoteCandidates = [];
-  List<RTCRtpSender> _senders = <RTCRtpSender>[];
-  VideoSource _videoSource = VideoSource.Camera;
+      <String, RTCPeerConnection>{};
+  late final Map<String, RTCDataChannel> _dataChannels =
+      <String, RTCDataChannel>{};
+  late final List<RTCIceCandidate> _remoteCandidates = [];
+  final List<RTCRtpSender> _senders = <RTCRtpSender>[];
+  VideoSource _videoSource = VideoSource.camera;
 
   Map<String, dynamic>? mapData;
 
-  JsonDecoder decoder = JsonDecoder();
   late String _id;
   late String _media;
   late String _description;
@@ -69,7 +67,7 @@ class Signaling {
   DataChannelMessageCallback? onDataChannelMessage;
   DataChannelCallback? onDataChannel;
 
-  Map<String, dynamic> _iceServers = {
+  final Map<String, dynamic> _iceServers = {
     'sdpSemantics': 'plan-b',
     'iceServers': [
       {'url': 'stun:stun.l.google.com:19302'},
@@ -124,13 +122,13 @@ class Signaling {
   Future<void> switchCamera() async {
     print('camera switched');
     print('$_senders senders');
-    if (_videoSource != VideoSource.Camera) {
+    if (_videoSource != VideoSource.camera) {
       _senders.forEach((sender) {
         if (sender.track!.kind == 'video') {
           sender.replaceTrack(_localStream!.getVideoTracks()[0]);
         }
       });
-      _videoSource = VideoSource.Camera;
+      _videoSource = VideoSource.camera;
       onLocalStream!.call(_localStream!);
     } else {
       Helper.switchCamera(_localStream!.getVideoTracks()[0]);
@@ -155,7 +153,7 @@ class Signaling {
     _sessionId = '${_selfId}-$peer_id';
 
     if (onStateChange != null) {
-      onStateChange!(SignalingState.CallStateNew);
+      onStateChange!(SignalingState.callStateNew);
     }
 
     _createPeerConnection(peer_id, media, use_screen).then((pc) {
@@ -181,7 +179,7 @@ class Signaling {
     print('connect to $url');
     _socket?.onOpen = () {
       print('onOpen');
-      onStateChange!(SignalingState.ConnectionOpen);
+      onStateChange!(SignalingState.connectionOpen);
       var data = {
         'name': DeviceInfo.label,
         'id': _selfId,
@@ -192,8 +190,8 @@ class Signaling {
     };
 
     _socket?.whenCLose = (message) {
-      mapData = decoder.convert(message);
-      type = decoder.convert(message);
+      mapData = json.decode(message);
+      type = json.decode(message);
       inspect(type);
       if (type['type'] == 'close') {
         var data = mapData!['data'];
@@ -205,7 +203,7 @@ class Signaling {
           _localStream = null;
         }
         _senders.clear();
-        _videoSource = VideoSource.Camera;
+        _videoSource = VideoSource.camera;
 
         _peerConnections.forEach((key, pc) {
           pc.close();
@@ -214,10 +212,10 @@ class Signaling {
     };
 
     _socket?.newCallback = (message) {
-      type = decoder.convert(message);
+      type = json.decode(message);
       if (type['type'] == 'peers') {
         print('new callback');
-        mapData = decoder.convert(message);
+        mapData = json.decode(message);
         var data = mapData!['data'];
         List<dynamic> peers = data;
         if (onPeersUpdate != null) {
@@ -229,10 +227,10 @@ class Signaling {
       }
     };
     _socket?.offerCallback = (message) async {
-      var type = decoder.convert(message);
+      var type = json.decode(message);
 
       if (type['type'] == 'offer') {
-        mapData = decoder.convert(message);
+        mapData = json.decode(message);
         var data = mapData!['data'];
         var id = data['from'];
         var description = data['description'];
@@ -240,7 +238,7 @@ class Signaling {
         var sessionId = data['session_id'];
         _sessionId = sessionId;
         if (onStateChange != null) {
-          onStateChange!(SignalingState.CallStateNew);
+          onStateChange!(SignalingState.callStateNew);
         }
 
         var pc = await _createPeerConnection(id, media, false);
@@ -258,12 +256,12 @@ class Signaling {
     };
 
     _socket?.answerCallback = (message) async {
-      var type = decoder.convert(message);
+      var type = json.decode(message);
 
       if (type['type'] == 'answer') {
         // JsonDecoder decoder = new JsonDecoder();
         // Map<String, dynamic> mapData = decoder.convert(message);
-        mapData = decoder.convert(message);
+        mapData = json.decode(message);
         var data = mapData!['data'];
         var id = data['from'];
         var description = data['description'];
@@ -277,12 +275,12 @@ class Signaling {
     };
 
     _socket?.candidateCallback = (message) async {
-      var type = decoder.convert(message);
+      var type = json.decode(message);
 
       if (type['type'] == 'candidate') {
         // JsonDecoder decoder = new JsonDecoder();
         // Map<String, dynamic> mapData = decoder.convert(message);
-        mapData = decoder.convert(message);
+        mapData = json.decode(message);
         var data = mapData!['data'];
         var id = data['from'];
         var candidateMap = data['candidate'];
@@ -298,12 +296,12 @@ class Signaling {
     };
 
     _socket?.leaveCallback = (message) async {
-      var type = decoder.convert(message);
+      var type = json.decode(message);
 
       if (type['type'] == 'leave') {
         // JsonDecoder decoder = new JsonDecoder();
         // Map<String, dynamic> mapData = decoder.convert(message);
-        mapData = decoder.convert(message);
+        mapData = json.decode(message);
         var data = mapData!['data'];
         var id = data;
         var pc = _peerConnections.remove(id);
@@ -319,24 +317,24 @@ class Signaling {
         }
         _sessionId = '';
         if (onStateChange != null) {
-          onStateChange!(SignalingState.CallStateBye);
+          onStateChange!(SignalingState.callStateBye);
         }
       }
     };
 
     _socket?.byeCallback = (message) async {
-      var type = decoder.convert(message);
+      var type = json.decode(message);
 
       if (type['type'] == 'bye') {
-        mapData = decoder.convert(message);
+        mapData = json.decode(message);
         inspect(mapData);
         dynamic data = mapData!['data'];
 
-        dynamic from = data['from'];
+        // dynamic from = data['from'];
         dynamic to = data['to'];
         dynamic sessionId = data['session_id'];
         sessionId = sessionId;
-        print('bye: ' + sessionId.toString());
+        print('bye: $sessionId');
 
         if (_localStream != null) {
           _localStream?.dispose();
@@ -357,13 +355,13 @@ class Signaling {
 
         _sessionId = '';
         if (onStateChange != null) {
-          onStateChange!(SignalingState.CallStateBye);
+          onStateChange!(SignalingState.callStateBye);
         }
       }
     };
 
     _socket?.keepaliveCallback = (message) async {
-      var type = decoder.convert(message);
+      var type = json.decode(message);
 
       if (type['type'] == 'keepalive') {
         print('keepalive response! ===================================');
@@ -373,7 +371,7 @@ class Signaling {
     _socket?.onClose = (int code, String reason) {
       print('Closed by server [$code => $reason]!');
       if (onStateChange != null) {
-        onStateChange!(SignalingState.ConnectionClosed);
+        onStateChange!(SignalingState.connectionClosed);
       }
     };
 
@@ -417,7 +415,7 @@ class Signaling {
     return stream;
   }
 
-  _createPeerConnection(id, media, user_screen) async {
+  _createPeerConnection(id, media, userScreen) async {
     RTCPeerConnection pc = await createPeerConnection(_iceServers, _config);
 
     pc.onTrack = (event) {
@@ -428,7 +426,7 @@ class Signaling {
       _remoteStreams?.add(event.streams[0]);
     };
     if (media != 'data') {
-      _localStream = await createStream(media, user_screen);
+      _localStream = await createStream(media, userScreen);
       // for (var track in localStream.getVideoTracks()) {
       //   pc.addTrack(track, localStream);
       // }
@@ -578,8 +576,6 @@ class Signaling {
   }
 
   _send(event, data) {
-    // data['type'] = event;
-    JsonEncoder encoder = const JsonEncoder();
-    _socket?.send(event, encoder.convert(data));
+    _socket?.send(event, json.encode(data));
   }
 }

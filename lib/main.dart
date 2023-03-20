@@ -9,7 +9,6 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter_background/flutter_background.dart';
 import 'package:flutter/foundation.dart'
     show debugDefaultTargetPlatformOverride;
-import 'package:flutter/material.dart';
 
 void main() {
   if (WebRTC.platformIsDesktop) {
@@ -19,46 +18,20 @@ void main() {
     startForegroundService();
   }
   HttpOverrides.global = MyHttpOverrides();
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
-  _MyAppState createState() => _MyAppState();
+  MyAppState createState() => MyAppState();
 }
 
-class MyHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
-  }
-}
-
-Future<bool> startForegroundService() async {
-  final androidConfig = FlutterBackgroundAndroidConfig(
-    notificationTitle: 'Title of the notification',
-    notificationText: 'Text of the notification',
-    notificationImportance: AndroidNotificationImportance.Default,
-    notificationIcon: AndroidResource(
-        name: 'background_icon',
-        defType: 'drawable'), // Default is ic_launcher from folder mipmap
-  );
-  await FlutterBackground.initialize(androidConfig: androidConfig);
-  return FlutterBackground.enableBackgroundExecution();
-}
-
-enum DialogDemoAction {
-  cancel,
-  connect,
-}
-
-class _MyAppState extends State<MyApp> {
+class MyAppState extends State<MyApp> {
   late List<RouteItem> items;
   String _serverAddress = '';
   KeyValueStore keyValueStore = KeyValueStore();
-  bool _datachannel = false;
 
   @override
   initState() {
@@ -75,7 +48,7 @@ class _MyAppState extends State<MyApp> {
           onTap: () => item.push(context),
           trailing: const Icon(Icons.arrow_right),
         ),
-        Divider()
+        const Divider()
       ],
     );
   }
@@ -158,9 +131,35 @@ class _MyAppState extends State<MyApp> {
       RouteItem(
           title: 'CallSample',
           push: (BuildContext context) {
-            _datachannel = false;
             _showAddressDialog(context);
           })
     ];
   }
+}
+
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
+Future<bool> startForegroundService() async {
+  const androidConfig = FlutterBackgroundAndroidConfig(
+    notificationTitle: 'Title of the notification',
+    notificationText: 'Text of the notification',
+    notificationImportance: AndroidNotificationImportance.Default,
+    notificationIcon: AndroidResource(
+        name: 'background_icon',
+        defType: 'drawable'), // Default is ic_launcher from folder mipmap
+  );
+  await FlutterBackground.initialize(androidConfig: androidConfig);
+  return FlutterBackground.enableBackgroundExecution();
+}
+
+enum DialogDemoAction {
+  cancel,
+  connect,
 }

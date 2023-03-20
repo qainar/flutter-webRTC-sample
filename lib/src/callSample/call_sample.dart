@@ -1,31 +1,24 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'dart:core';
 import 'signalling.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class CallSample extends StatefulWidget {
-  static String tag = 'call_sample';
-
   final String ip;
-
-  CallSample({Key? key, required this.ip}) : super(key: key);
+  const CallSample({Key? key, required this.ip}) : super(key: key);
 
   @override
-  _CallSampleState createState() => _CallSampleState(serverIP: ip);
+  CallSampleState createState() => CallSampleState();
 }
 
-class _CallSampleState extends State<CallSample> {
+class CallSampleState extends State<CallSample> {
   Signaling? _signaling;
   List<dynamic>? _peers;
-  var _selfId;
-  RTCVideoRenderer _localRenderer = RTCVideoRenderer();
-  RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
+  dynamic _selfId;
+  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   bool _inCalling = false;
-  final String serverIP;
-
-  _CallSampleState({Key? key, required this.serverIP});
+  late final String serverIP;
 
   @override
   initState() {
@@ -55,24 +48,24 @@ class _CallSampleState extends State<CallSample> {
 
       _signaling?.onStateChange = (SignalingState state) {
         switch (state) {
-          case SignalingState.CallStateNew:
+          case SignalingState.callStateNew:
             _inCalling = true;
             initRenderers();
 
             break;
-          case SignalingState.CallStateBye:
+          case SignalingState.callStateBye:
             setState(() {
               _localRenderer.srcObject = null;
               _remoteRenderer.srcObject = null;
               _inCalling = false;
             });
             break;
-          case SignalingState.CallStateInvite:
-          case SignalingState.CallStateConnected:
-          case SignalingState.CallStateRinging:
-          case SignalingState.ConnectionClosed:
-          case SignalingState.ConnectionError:
-          case SignalingState.ConnectionOpen:
+          case SignalingState.callStateInvite:
+          case SignalingState.callStateConnected:
+          case SignalingState.callStateRinging:
+          case SignalingState.connectionClosed:
+          case SignalingState.connectionError:
+          case SignalingState.connectionOpen:
             break;
         }
       };
@@ -102,9 +95,9 @@ class _CallSampleState extends State<CallSample> {
     }
   }
 
-  _invitePeer(context, peerId, use_screen) async {
+  _invitePeer(context, peerId, useSreen) async {
     if (_signaling != null && peerId != _selfId) {
-      _signaling?.invite(peerId, 'video', use_screen);
+      _signaling?.invite(peerId, 'video', useSreen);
     }
   }
 
@@ -148,7 +141,7 @@ class _CallSampleState extends State<CallSample> {
                     tooltip: 'Screen sharing',
                   )
                 ])),
-        subtitle: Text('id: ' + peer['id']),
+        subtitle: Text('id: ${peer['id']}'),
       ),
       const Divider()
     ]);
@@ -198,33 +191,30 @@ class _CallSampleState extends State<CallSample> {
           : null,
       body: _inCalling
           ? OrientationBuilder(builder: (context, orientation) {
-              return Container(
-                child: Stack(children: <Widget>[
-                  Positioned(
-                      left: 0.0,
-                      right: 0.0,
-                      top: 0.0,
-                      bottom: 0.0,
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-                        width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.height,
-                        decoration: const BoxDecoration(color: Colors.black54),
-                        child: RTCVideoView(_remoteRenderer),
-                      )),
-                  Positioned(
-                    left: 20.0,
-                    top: 20.0,
+              return Stack(children: <Widget>[
+                Positioned(
+                    left: 0.0,
+                    right: 0.0,
+                    top: 0.0,
+                    bottom: 0.0,
                     child: Container(
-                      width: orientation == Orientation.portrait ? 90.0 : 120.0,
-                      height:
-                          orientation == Orientation.portrait ? 120.0 : 90.0,
+                      margin: const EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
                       decoration: const BoxDecoration(color: Colors.black54),
-                      child: RTCVideoView(_localRenderer),
-                    ),
+                      child: RTCVideoView(_remoteRenderer),
+                    )),
+                Positioned(
+                  left: 20.0,
+                  top: 20.0,
+                  child: Container(
+                    width: orientation == Orientation.portrait ? 90.0 : 120.0,
+                    height: orientation == Orientation.portrait ? 120.0 : 90.0,
+                    decoration: const BoxDecoration(color: Colors.black54),
+                    child: RTCVideoView(_localRenderer),
                   ),
-                ]),
-              );
+                ),
+              ]);
             })
           : ListView.builder(
               shrinkWrap: true,

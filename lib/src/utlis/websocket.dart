@@ -1,22 +1,22 @@
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:socket_io_client/socket_io_client.dart';
 
-typedef void OnMessageCallback(dynamic msg);
-typedef void OnCloseCallback(int code, String reason);
-typedef void OnOpenCallback();
-typedef void OnNewCallback(dynamic msg);
-typedef void OnByeCallback(dynamic msg);
-typedef void OnAnswerCallback(dynamic msg);
-typedef void OnOfferCallback(dynamic msg);
-typedef void OnLeaveCallback(dynamic msg);
-typedef void OnKeepaliveCallback(dynamic msg);
-typedef void OnCandidateCallback(dynamic msg);
-typedef void OnUpdatePeersCallback(dynamic msg);
-typedef void WhenCLose(dynamic msg);
+typedef OnMessageCallback = void Function(dynamic msg);
+typedef OnCloseCallback = void Function(int code, String reason);
+typedef OnOpenCallback = void Function();
+typedef OnNewCallback = void Function(dynamic msg);
+typedef OnByeCallback = void Function(dynamic msg);
+typedef OnAnswerCallback = void Function(dynamic msg);
+typedef OnOfferCallback = void Function(dynamic msg);
+typedef OnLeaveCallback = void Function(dynamic msg);
+typedef OnKeepaliveCallback = void Function(dynamic msg);
+typedef OnCandidateCallback = void Function(dynamic msg);
+typedef OnUpdatePeersCallback = void Function(dynamic msg);
+typedef WhenCLose = void Function(dynamic msg);
 
 class SimpleWebSocket {
-  String? _url;
-  IO.Socket? _socket;
+  final String? _url;
+  io.Socket? _socket;
   OnOpenCallback? onOpen;
   OnMessageCallback? onMessage;
   OnCloseCallback? onClose;
@@ -33,7 +33,7 @@ class SimpleWebSocket {
   SimpleWebSocket(this._url);
 
   connect() {
-    _socket = IO.io(
+    _socket = io.io(
         _url,
         OptionBuilder()
             .setTransports(['websocket']) // for Flutter or Dart VM

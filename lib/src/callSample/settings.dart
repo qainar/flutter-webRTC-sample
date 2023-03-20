@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'dart:core';
 
-class CallSettings extends StatefulWidget{
+class CallSettings extends StatefulWidget {
   static String tag = 'call settings';
 
+  const CallSettings({super.key});
+
   @override
-  _CallSettingsState createState() => new _CallSettingsState();
+  CallSettingsState createState() => CallSettingsState();
 }
 
-class _CallSettingsState extends State<CallSettings>{
+class CallSettingsState extends State<CallSettings> {
   @override
-  initState(){
+  initState() {
     super.initState();
   }
+
   @override
   deactivate() {
     super.deactivate();
